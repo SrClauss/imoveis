@@ -1,8 +1,7 @@
 pub mod xlsx {
-    use calamine::{open_workbook_auto, DataType, Reader};
+    use calamine::{open_workbook_auto, Reader};
     use serde_json::{json, Value};
-    use tauri::api::dir;
-    use std::{collections::HashMap, path};
+    use std::collections::HashMap;
     use unicode_normalization::UnicodeNormalization;
     
     

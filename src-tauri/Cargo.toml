@@ -21,6 +21,10 @@ tauri = { version = "1.7.0", features = [ "fs-exists", "path-all", "fs-write-fil
 calamine = "0.25.0"
 unicode-normalization = "0.1.19"
 mouse-rs = "0.4.2"
+chrono = "0.4.38"
+
+
+
 
 
 

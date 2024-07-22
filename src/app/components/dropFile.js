@@ -9,7 +9,7 @@ import { appLocalDataDir } from "@tauri-apps/api/path";
 import { fs } from "@tauri-apps/api";
 import AlertDialog from "./alertDialog";
 import { BaseDirectory } from "@tauri-apps/api/fs";
-export default function DropFile() {
+export default function DropFile({onCompiladoGerado, onCompleteSheets}) {
 
 
     const [showDialog, setShowDialog] = useState(false);
@@ -17,47 +17,18 @@ export default function DropFile() {
     const [file, setFile] = useState(null);
     const dropRef = useRef(null);
     const [hadImoveis, setHadImoveis] = useState(null);
-
     const [hadVisitas, setHadVisitas] = useState(null);
     const [hadAnuncios, setHadAnuncios] = useState(null);
-    const [compilado, setCompilado] = useState(null);
-    /*
+    const [fileAnuncios, setFileAnuncios] = useState("");
+    const [fileImoveis, setFileImoveis] = useState("");
+    const [fileVisitas, setFileVisitas] = useState("");
 
-    {
-    "area_total": 120,
-    "endereco": "Rua Salvador de Mendonça, nº 0",
-    "dormitorios": 4,
-    "suites": 1,
-    "r_locacao": 0,
-    "tipo": "Apartamento",
-    "referencia_alternativa": "",
-    "marcadores": "",
-    "r_venda_m": 0,
-    "r_iptu": 780,
-    "fotos": 16,
-    "referencia": "AP0881",
-    "status": "Ativo",
-    "cidade": "Rio de Janeiro",
-    "promotores": "",
-    "r_locacao_m": 0,
-    "bairro": "Rio Comprido",
-    "data_de_atualizacao": "14/05/2024",
-    "edf__cond": "Condominio Edificio",
-    "r_cond": 360,
-    "compl": "3 andar",
-    "data_de_cadastro": "14/05/2024",
-    "area": 0,
-    "indicadores": "",
-    "captadores": "Adjarnes Roque",
-    "vagas": 1,
-    "permuta_por": "",
-    "finalidade": "Residencial",
-    "r_venda": 450000
-}
-     */
+   
     useEffect(() => {
-        if (hadImoveis &&  hadVisitas && hadAnuncios) {
-            const comp = []
+        if (hadImoveis && hadVisitas && hadAnuncios) {
+            onCompleteSheets(true);
+
+            let comp = []
 
             hadImoveis.forEach((item) => {
 
@@ -69,7 +40,8 @@ export default function DropFile() {
                     venda: item.r_venda,
                     locacao: item.r_locacao,
                 }
-                let anunc = hadAnuncios.filter((item) => {return item.referencia === reg.referencia});
+                let anunc = hadAnuncios.filter((item) => { return item.codigo_do_imovel === reg.referencia });
+
                 if (anunc.length > 0) {
                     reg.visualizacoes = anunc[0].total_de_visualizacoes;
                     reg.contatos = anunc[0].total_de_contatos;
@@ -83,16 +55,17 @@ export default function DropFile() {
                     reg.ultimaAtualizacao = null;
                 }
 
-                let visitas = hadVisitas.filter((item) => {return item.referencia === reg.referencia});
+                let visitas = hadVisitas.filter((item) => { return item.ref_imovel == reg.referencia });
+            
                 reg.numVisitas = 0;
                 reg.visitasConcluidas = 0;
                 reg.visitasCanceladas = 0;
-                reg.visitasAguardando = 0; 
+                reg.visitasAguardando = 0;
                 reg.interessou = 0;
                 reg.interessouGerouProposta = 0;
                 reg.naoInteressou = 0;
-                reg.totalConsevacao = 0;
-                reg.mediaConsevacao = 0;
+                reg.totalConservacao = 0;
+                reg.mediaConservacao = 0;
                 reg.totalLocalizacao = 0;
                 reg.mediaLocalizacao = 0;
                 reg.totalAvaliacao = 0;
@@ -109,246 +82,270 @@ export default function DropFile() {
                         if (vis.status === "Aguardando") {
                             reg.visitasAguardando++;
                         }
-                        if (vis.interesse.lower() === "interessou") {
+                        if (vis.interesse.toLowerCase() === "interessou") {
                             reg.interessou++;
                         }
-                        if (vis.interesse.lower() === "interessou e gerou proposta") {
+                        if (vis.interesse.toLowerCase() === "interessou e gerou proposta") {
                             reg.interessouGerouProposta++;
                         }
-                        if (vis.interesse.lower() === "não interessou") {
+                        if (vis.interesse.toLowerCase() === "não interessou") {
                             reg.naoInteressou++;
                         }
-                        reg.totalConsevacao += vis.conservacao;
-                        reg.totalLocalizacao += vis.localizacao;
-                        reg.totalAvaliacao += vis.avaliacao;''
+                        if (parseInt(vis.avaliacao_do_imovel_pelo_cliente_de_1_a_5__conservacao) != NaN) {
+                            reg.totalConservacao += vis.avaliacao_do_imovel_pelo_cliente_de_1_a_5__conservacao;
+
+                        }
+                        if (parseInt(vis.avaliacao_do_imovel_pelo_cliente_de_1_a_5__localizacao) != NaN) {
+
+
+                            reg.totalLocalizacao += vis.avaliacao_do_imovel_pelo_cliente_de_1_a_5__localizacao;
+                        }
+
+
+                        if (parseInt(vis.avaliacao_do_imovel_pelo_cliente_de_1_a_5__valor) != NaN) {
+                            reg.totalAvaliacao += vis.avaliacao_do_imovel_pelo_cliente_de_1_a_5__valor;
+
+                        }
 
                     })
                 }
-                reg.mediaConsevacao = reg.totalConsevacao / reg.visitasConcluidas;
+                reg.mediaConsevacao = reg.totalConservacao / reg.visitasConcluidas;
                 reg.mediaLocalizacao = reg.totalLocalizacao / reg.visitasConcluidas;
                 reg.mediaAvaliacao = reg.totalAvaliacao / reg.visitasConcluidas;
+                reg.avaliacaoSubjetiva = 0;
+                
 
                 comp.push(reg);
-                
-                
+
             })
 
+   
 
-    console.log(comp)
-}
-    
-       
+
+            
+            onCompiladoGerado(comp)
+   
+        }
+        else {
+            onCompleteSheets(false);
+        }
         
-    }, [hadImoveis,  hadVisitas, hadAnuncios]);
+ 
+
+
+    }, [hadImoveis, hadVisitas, hadAnuncios]);
+
+
+    const processXlsx = (sheet) => {
+
+        if (sheet === "Anúncios") {
+            setFileAnuncios(file.split("\\")[file.split("\\").length - 1]);
+            invoke("read_sheet_to_hash_vector", { path: file, sheetName: sheet }).then((res) => {
+                const data = JSON.parse(res);
+           
+                setHadAnuncios(data);
+            }).catch((err) => {
+                console.log(err);
+            })
+            return;
+
+        }
+
+        if (sheet === "Imoveis") {
+            setFileImoveis(file.split("\\")[file.split("\\").length - 1]);
+            invoke("read_sheet_to_hash_vector", { path: file, sheetName: sheet }).then((res) => {
+                const data = JSON.parse(res);
+
+                setHadImoveis(data);
+            }).catch((err) => {
+                console.log(err);
+            })
+            return;
+
+        }
 
 
 
-const processXlsx = (sheet) => {
+        if (sheet === "Visitas") {
+            setFileVisitas(file.split("\\")[file.split("\\").length - 1]);
+            invoke("read_sheet_to_hash_vector", { path: file, sheetName: sheet }).then((res) => {
+                const data = JSON.parse(res);
 
-    if (sheet === "Anúncios") {
-        invoke("read_sheet_to_hash_vector", { path: file, sheetName: sheet }).then((res) => {
-            const data = JSON.parse(res);
-            console.log(data);
-            setHadAnuncios(data);
-        }).catch((err) => {
-            console.log(err);
-        })
-        return;
+                setHadVisitas(data);
+            }).catch((err) => {
+                console.log(err);
+            })
+            return;
+        }
+
 
     }
-
-    if (sheet === "Imoveis") {
-        invoke("read_sheet_to_hash_vector", { path: file, sheetName: sheet }).then((res) => {
-            const data = JSON.parse(res);
-            console.log(data);
-            setHadImoveis(data);
-        }).catch((err) => {
-            console.log(err);
-        })
-        return;
-
-    }
+    const handleClickDrop = () => {
+        if (!showDialog) {
 
 
-  
-    if (sheet === "Visitas") {
-        invoke("read_sheet_to_hash_vector", { path: file, sheetName: sheet }).then((res) => {
-            const data = JSON.parse(res);
-            console.log(data);
-            setHadVisitas(data);
-        }).catch((err) => {
-            console.log(err);
-        })
-        return;
-    }
+            appLocalDataDir().then((folder) => {
+                fs.exists(`${folder}config.json`).then((exists) => {
+                    if (exists) {
+
+                        fs.readTextFile(`${folder}config.json`).then((file) => {
+
+                            fs.readTextFile(`${folder}config.json`).then((config) => {
+
+                                const configJson = JSON.parse(config);
+                                dialog.open({
+                                    title: "Selecione o arquivo xlsx",
+                                    defaultPath: `${configJson.lastPath}`,
+                                    directory: false,
+                                    filters: [
+                                        { name: 'Excel Files', extensions: ['xlsx', "xls", "xlsm"] }
+                                    ]
+
+                                }).then((res) => {
+                                    const lastIndex = res.lastIndexOf("\\")
+                                    const path = res.substring(0, lastIndex + 1)
+                                    const config = {
+                                        lastPath: path
+                                    }
+                                    fs.writeFile(`${folder}config.json`, JSON.stringify(config), { dir: BaseDirectory.AppLocalData }).then((res) => {
+                                        console.log("Arquivo de configuração criado com sucesso")
 
 
-}
-const handleClickDrop = () => {
-    if (!showDialog) {
+                                    }).catch((err) => {
+                                        console.log(err)
+                                    })
+                                    invoke("get_sheets_names", { dir: res }).then((sheets) => {
+                                        const sheets_json = JSON.parse(sheets);
+                                        setSheets(sheets_json);
+                                        setShowDialog(true);
+                                        setFile(res);
+                                    }).catch((err) => {
+                                        console.log(err);
+                                    })
 
 
-        appLocalDataDir().then((folder) => {
-            fs.exists(`${folder}config.json`).then((exists) => {
-                if (exists) {
-
-                    fs.readTextFile(`${folder}config.json`).then((file) => {
-
-                        fs.readTextFile(`${folder}config.json`).then((config) => {
-
-                            const configJson = JSON.parse(config);
-                            dialog.open({
-                                title: "Selecione o arquivo xlsx",
-                                defaultPath: `${configJson.lastPath}`,
-                                directory: false,
-                                filters: [
-                                    { name: 'Excel Files', extensions: ['xlsx', "xls", "xlsm"] }
-                                ]
-
-                            }).then((res) => {
-                                const lastIndex = res.lastIndexOf("\\")
-                                const path = res.substring(0, lastIndex + 1)
-                                const config = {
-                                    lastPath: path
-                                }
-                                fs.writeFile(`${folder}config.json`, JSON.stringify(config), { dir: BaseDirectory.AppLocalData }).then((res) => {
-                                    console.log("Arquivo de configuração criado com sucesso")
-
-
-                                }).catch((err) => {
-                                    console.log(err)
-                                })
-                                invoke("get_sheets_names", { dir: res }).then((sheets) => {
-                                    const sheets_json = JSON.parse(sheets);
-                                    setSheets(sheets_json);
-                                    setShowDialog(true);
-                                    setFile(res);
                                 }).catch((err) => {
                                     console.log(err);
                                 })
-
-
-                            }).catch((err) => {
-                                console.log(err);
                             })
-                        })
-                    }).catch((err) => {
-                        console.log(`Erro ao ler arquivo de configuração: ${err}`)
-                    })
-                }
-                else {
-                    dialog.open({
-                        title: "Selecione o arquivo xlsx",
-                        defaultPath: `${"C:\\"}`,
-                        directory: false,
-                        filters: [
-                            { name: 'Excel Files', extensions: ['xlsx', "xls", "xlsm"] }
-                        ]
-
-                    }).then((res) => {
-                        const lastIndex = res.lastIndexOf("\\")
-                        const path = res.substring(0, lastIndex + 1)
-                        const config = {
-                            lastPath: path
-                        }
-                        fs.writeFile(`${folder}config.json`, JSON.stringify(config), { dir: BaseDirectory.AppLocalData }).then((res) => {
-                            console.log("Arquivo de configuração criado com sucesso")
                         }).catch((err) => {
-                            console.log(err)
+                            console.log(`Erro ao ler arquivo de configuração: ${err}`)
                         })
-                    }).catch((err) => {
-                        console.log(err);
-                    })
-                }
+                    }
+                    else {
+                        dialog.open({
+                            title: "Selecione o arquivo xlsx",
+                            defaultPath: `${"C:\\"}`,
+                            directory: false,
+                            filters: [
+                                { name: 'Excel Files', extensions: ['xlsx', "xls", "xlsm"] }
+                            ]
 
+                        }).then((res) => {
+                            const lastIndex = res.lastIndexOf("\\")
+                            const path = res.substring(0, lastIndex + 1)
+                            const config = {
+                                lastPath: path
+                            }
+                            fs.writeFile(`${folder}config.json`, JSON.stringify(config), { dir: BaseDirectory.AppLocalData }).then((res) => {
+                                console.log("Arquivo de configuração criado com sucesso")
+                            }).catch((err) => {
+                                console.log(err)
+                            })
+                        }).catch((err) => {
+                            console.log(err);
+                        })
+                    }
+
+                })
             })
-        })
+        }
+
+
+
+
+
+    }
+    const getWindowPosition = async () => {
+        const win = getCurrent();
+        const outerPosition = await win.outerPosition();
+        return outerPosition;
+    }
+    const handleDragOver = async (e) => {
+
+        const { x, y } = await getWindowPosition();
+
+        invoke("get_mouse_position", { wx: x, wy: y }).then((res) => {
+            const position = JSON.parse(res);
+            const dropPosition = dropRef.current.getBoundingClientRect();
+
+
+            if (position.x >= dropPosition.x && position.x <= dropPosition.x + dropPosition.width && position.y >= dropPosition.y && position.y <= dropPosition.y + dropPosition.height) {
+                const file = e.payload;
+                setFile(file[0]);
+                invoke("get_sheets_names", { dir: file[0] }).then((res) => {
+                    const sheets = JSON.parse(res);
+                    setSheets(sheets);
+                    setShowDialog(true);
+                }).catch((err) => {
+                    console.log(err);
+                });
+
+
+            }
+            else {
+                console.log("Fora da area de drop");
+            }
+
+
+        });
     }
 
+    useEffect(() => {
 
 
+        listen("tauri://file-drop", handleDragOver);
 
+    }, []);
 
-}
-const getWindowPosition = async () => {
-    const win = getCurrent();
-    const outerPosition = await win.outerPosition();
-    return outerPosition;
-}
-const handleDragOver = async (e) => {
+    return (
+        <div onClick={handleClickDrop} ref={dropRef} className="p-10">
 
-    const { x, y } = await getWindowPosition();
+            <div className="w-full p-10 border border-amber-900 border-dashed flex justify-center rounded-md">
 
-    invoke("get_mouse_position", { wx: x, wy: y }).then((res) => {
-        const position = JSON.parse(res);
-        const dropPosition = dropRef.current.getBoundingClientRect();
+                <div className="flex flex-row gap-2">
 
+                    <div id="dropimoveis" className="border">
 
-        if (position.x >= dropPosition.x && position.x <= dropPosition.x + dropPosition.width && position.y >= dropPosition.y && position.y <= dropPosition.y + dropPosition.height) {
-            const file = e.payload;
-            setFile(file[0]);
-            invoke("get_sheets_names", { dir: file[0] }).then((res) => {
-                const sheets = JSON.parse(res);
-                setSheets(sheets);
-                setShowDialog(true);
-            }).catch((err) => {
-                console.log(err);
-            });
-
-
-        }
-        else {
-            console.log("Fora da area de drop");
-        }
-
-
-    });
-}
-
-useEffect(() => {
-
-
-    listen("tauri://file-drop", handleDragOver);
-
-}, []);
-
-return (
-    <div onClick={handleClickDrop} ref={dropRef} className="p-10">
-
-        <div className="w-full p-10 border border-amber-900 border-dashed flex justify-center rounded-md">
-
-            <div className="flex flex-row gap-2">
-
-                <div id="dropimoveis" className="border">
-
-                    <div className=" flex justify-center">
-                        <img src={hadImoveis ? "img/archive.png" : "img/no_archive.png"} alt="Imoveis" width={'70%'} />
+                        <div className=" flex justify-center">
+                            <img src={hadImoveis ? "img/archive.png" : "img/no_archive.png"} alt="Imoveis" width={'70%'} />
+                        </div>
+                        <div className="w-full text-center">Imoveis</div>
+                        <div className="w-full text-xs text-center"> {fileImoveis}</div>
                     </div>
-                    <div className="w-full text-center">Imoveis</div>
-                </div>
-                <div id="dropvisitas" className="border">
-                    <div className=" flex justify-center">
-                        <img src={hadVisitas ? "img/archive.png" : "img/no_archive.png"} alt="Visitas" width={'70%'} />
+                    <div id="dropvisitas" className="border">
+                        <div className=" flex justify-center">
+                            <img src={hadVisitas ? "img/archive.png" : "img/no_archive.png"} alt="Visitas" width={'70%'} />
+                        </div>
+                        <div className="w-full text-center">Visitas</div>
                     </div>
-                    <div className="w-full text-center">Visitas</div>
-                </div>
-                <div id="dropzap" className="border">
-                    <div className=" flex justify-center">
-                        <img src={hadAnuncios ? "img/archive.png" : "img/no_archive.png"} alt="Zap" width={'70%'} />
+                    <div id="dropzap" className="border">
+                        <div className=" flex justify-center">
+                            <img src={hadAnuncios ? "img/archive.png" : "img/no_archive.png"} alt="Zap" width={'70%'} />
+                        </div>
+                        <div className="w-full text-center">Zap</div>
                     </div>
-                    <div className="w-full text-center">Zap</div>
+
+
+
                 </div>
-
-
-
+                <AlertDialog open={showDialog} onClose={setShowDialog} onSend={processXlsx} sheets={sheets} />
             </div>
-            <AlertDialog open={showDialog} onClose={setShowDialog} onSend={processXlsx} sheets={sheets} />
-        </div>
 
 
 
 
 
-    </div >
-)
+        </div >
+    )
 }
